@@ -1,8 +1,12 @@
 ﻿using BlogWebApp.Database;
 using BlogWebApp.Interfaces;
 using BlogWebApp.Models;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
+using System.Security.Claims;
+using System.Web;
+using Microsoft.AspNetCore.Http.Abstractions;
 
 namespace BlogWebApp.Controllers
 {
@@ -19,14 +23,51 @@ namespace BlogWebApp.Controllers
             _userAccountActions = userAccountActions;
         }
 
-        public IActionResult Index()
+        public IActionResult Login()
         {
             return View();
         }
 
-        public IActionResult Privacy()
+        public IActionResult PostCreationPage()
         {
-            return View();
+            try
+            {
+                if(!HttpContext.Session.GetInt32("UserId").HasValue)
+                {
+                    throw new Exception("Not logged in, please login to continue :)");
+                }
+                var currentUser = _userAccountActions.GetUserById(HttpContext.Session.GetInt32("UserId").Value);
+
+                TempData["CurrentUsername"] = currentUser.Username;
+                TempData["CurrentUserId"] = currentUser.UserId;
+
+                return View(currentUser);
+
+            }
+            catch(Exception e)
+            {
+                TempData["LoginFailError"] = e.Message;
+                return RedirectToAction("Login");
+            }
+        }
+        public IActionResult ExistingPostsPage()
+        {
+            try
+            {
+                if (!HttpContext.Session.GetInt32("UserId").HasValue)
+                {
+                    throw new Exception("Not logged in, please login to continue :)");
+                }
+                var currentUser = _userAccountActions.GetUserById(HttpContext.Session.GetInt32("UserId").Value);
+                List<BlogPost> listOfUserPosts = _blogPostDbActions.GetAllBlogPostsForUsername(_userAccountActions.GetUserById(HttpContext.Session.GetInt32("UserId").Value).Username);
+                ViewBag.BlogPostList = listOfUserPosts;
+                return View();
+            }
+            catch(Exception e)
+            {
+                TempData["LoginFailError"] = e.Message;
+                return RedirectToAction("Login");
+            }
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
@@ -36,57 +77,127 @@ namespace BlogWebApp.Controllers
         }
 
         [HttpPost]
-        public ActionResult GetBlogPostDataFromView()
+        public ActionResult CreateNewBlogPost(string title, string content)
         {
             BlogPost newBlogPost = new BlogPost()
             {
-                Title = Request.Form["title"],
-                Author = Request.Form["author"],
-                Content = Request.Form["content"],
+                Title = title,
+                Author = _userAccountActions.GetUserById(HttpContext.Session.GetInt32("UserId").Value).Username,
+                Content = content,
                 UploadDateTime = DateTime.Now,
-            };
-            _blogPostDbActions.AddNewBlogPostDataToDb(newBlogPost);
-            return Redirect("Privacy");
-        }
-        [HttpPost]
-        public ActionResult NewUserRegistration()
-        {
-            UserAccount newUserAccountInfo = new UserAccount()
-            {
-                Username = Request.Form["username"],
-                Password = Request.Form["password"],
             };
             try
             {
-                _userAccountActions.AddNewUserAccount(newUserAccountInfo);
-                return Redirect("Privacy");
+                _blogPostDbActions.AddNewBlogPostDataToDb(newBlogPost);
+                return Redirect("PostCreationPage");
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Debug.WriteLine(e.Message);
-                return Redirect("Index");
+                TempData["PostCreationFailError"] = e.Message;
+                return Redirect("PostCreationPage");
             }
         }
 
         [HttpPost]
-        public ActionResult Login()
+        public ActionResult NewUserRegistration(string username, string password)
         {
-            UserAccount loginToTest = new UserAccount()
+            UserAccount newUserAccountInfo = new UserAccount()
             {
-                Username = Request.Form["Username"],
-                Password = Request.Form["Password"],
+                Username = username,
+                Password = password,
             };
             try
             {
-                _userAccountActions.GetUserAccountByUsername(loginToTest.Username);
-                _userAccountActions.CheckIfPasswordCorrect(loginToTest.Username, loginToTest.Password);
-                return Redirect("Privacy");
+                _userAccountActions.AddNewUserAccount(newUserAccountInfo);
+                HttpContext.Session.SetInt32("UserId", _userAccountActions.GetUserIdFromUsername(username));
+
+                return Redirect("PostCreationPage");
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Debug.WriteLine(e.Message);
-                return Redirect("Index");
+                TempData["RegistrationFailError"] = e.Message;
+                return RedirectToAction("Login");
             }
+        }
+
+        [HttpPost]
+        public ActionResult Login(string username, string password)
+        {
+            try
+            {
+                _userAccountActions.CheckIfPasswordCorrect(username, password);
+
+                HttpContext.Session.SetInt32("UserId", _userAccountActions.GetUserIdFromUsername(username));
+                TempData["CurrentUser"] = _userAccountActions.GetUserById(HttpContext.Session.GetInt32("UserId").Value).Username;
+
+                return RedirectToAction("PostCreationPage");
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e.Message);
+                TempData["LoginFailError"] = e.Message;
+                return View("Login");
+
+            }
+        }
+        [HttpGet]
+        public ActionResult Logout()
+        {
+            HttpContext.Session.Clear();
+            return Redirect("Login");
+        }
+
+        [HttpGet]
+        public ActionResult FindNullClick()
+        {
+            List<int> nullPostIds = _blogPostDbActions.GetListOfNullPosts();
+            foreach(int i in nullPostIds)
+            {
+                Debug.WriteLine(i);
+            }
+            return Redirect("Login");
+        }
+        [HttpGet]
+        public ActionResult DeleteNullClick()
+        {
+            List<int> nullPostIds = _blogPostDbActions.GetListOfNullPosts();
+            foreach (int i in nullPostIds)
+            {
+                Debug.WriteLine($"deleted post with id {i}");
+                _blogPostDbActions.DeleteBlogPostById(i);
+            }
+            return Redirect("Login");
+        }
+        [HttpPost]
+        public ActionResult RemoveUserByName(string username)
+        {
+            HttpContext.Session.Clear();
+            Debug.WriteLine($"removing account with username: {username}");
+            _userAccountActions.DeleteUserByUsername(username);
+            return RedirectToAction("Login");
+        }
+        [HttpPost]
+        public ActionResult DeletePostById(int postIdToRemove)
+        {
+            var currentUser = _userAccountActions.GetUserById(HttpContext.Session.GetInt32("UserId").Value);
+            var foundPostAuthor = _blogPostDbActions.GetAuthorFromPostId(postIdToRemove);
+
+            if(currentUser.Username == foundPostAuthor)
+            {
+                _blogPostDbActions.DeleteBlogPostById(postIdToRemove);
+
+            }
+            else
+            {
+                TempData["DeletePostError"] = "that post id is not associated with that username";
+            }
+
+            TempData["CurrentUsername"] = currentUser.Username;
+            TempData["CurrentUserId"] = currentUser.UserId;
+
+            return RedirectToAction("ExistingPostsPage");
         }
     }
 }

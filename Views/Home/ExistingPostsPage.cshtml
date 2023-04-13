@@ -1,0 +1,53 @@
+﻿@{
+    <title>@ViewData["Title"] - Existing Posts</title>
+
+}
+
+<div class="text-left">
+    @using(Html.BeginForm("Logout", "Home"))
+    {
+         <p>Current User: @TempData["CurrentUsername"] <br /></p>
+         <p>Current User Id: @TempData["CurrentUserId"] <br /></p>
+         
+         <input type="button" value="click me to log out" onclick="location.href='@Url.Action("Logout", "Home")'" />
+    }
+
+</div>
+<br />
+<br />
+<div class="text-center">
+
+    <table>
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Post Id</th>
+                <th>Content</th>
+            </tr>
+            </thead>
+            <tbody>
+                @foreach(var blogPost in ViewBag.BlogPostList)
+                {
+                    <tr>
+                    <td>@blogPost.Title</td>
+                    <td>@blogPost.Id</td>
+                    <td>@blogPost.Content</td>
+                    </tr>
+                }
+            </tbody>
+    </table>
+    <br />
+    @using(Html.BeginForm("DeletePostById", "Home"))
+    {
+        <input type="number" name="postIdToRemove" placeholder="Enter id of post to remove">
+        <input type="submit" name="removePostButton" value="Delete post">
+    }
+    @if(TempData["DeletePostError"] != null)
+    {
+            <script type="text/javascript">  
+                alert('@TempData["DeletePostError"]');  
+            </script>  
+    }
+</div>
+
+

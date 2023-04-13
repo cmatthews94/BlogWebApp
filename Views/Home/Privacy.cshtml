@@ -1,16 +1,3 @@
 ﻿@{
     ViewData["Title"] = "Privacy Policy";
-
 }
-
-<div class="text-center">
-    @using(Html.BeginForm("GetBlogPostDataFromView", "Home"))
-    {
-        <p>Create a new post</p>
-        <input type="text" name="title" placeholder="enter the title of your post" /><br />
-        <input type="text" name="content" placeholder="write your post here" /><br />
-        <input type="text" name="author" placeholder="who wrote this post?"/><br />
-        <input type="submit" onclick="alert('New post posted!');"/>
-    }
-
-

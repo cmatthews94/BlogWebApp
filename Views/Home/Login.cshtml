@@ -1,0 +1,61 @@
+﻿@{
+    ViewData["Title"] = "Log in";
+}
+
+    <div class="text-left">
+    @using(Html.BeginForm("RemoveUserByName", "Home", FormMethod.Post))
+    {
+         <input type="text" name ="username" placeholder="Enter username..." />
+         <input type="submit" value="remove user" /><br />
+    }
+
+    </div>
+
+    <br />
+
+    <div class="text-left">
+    @using(Html.BeginForm())
+    {
+         <input type="button" value="Find nulls in db" onclick="location.href='@Url.Action("FindNullClick", "Home")'" /><br />
+         <input type="button" value="Delete nulls in db" onclick="location.href='@Url.Action("DeleteNullClick", "Home")'" /><br />
+         <input type="button" value="Click me to log out" onclick="location.href='@Url.Action("Logout", "Home")'" />
+    }
+    </div>
+
+    <div class="text-center">
+    @using(Html.BeginForm("NewUserRegistration", "Home"))
+    {
+        <p>New User Registration</p>
+
+        <label for="username">Username (3-10 characters & alphanumerical only)</label><br />
+        <input type="text" name="username" pattern="[a-zA-Z0-9]{3,10}$" placeholder="Enter username" />
+        <br />
+        <label for="password">Password (3-10 characters & alphanumerical only) </label><br />
+        <input type="password" name="password" pattern="[a-zA-Z0-9]{3,10}$" placeholder="Enter password"/>
+        <br />
+        <input type="submit" id="registrationButton"/>
+        @if (TempData["RegistrationFailError"] != null)  
+        {  
+            <script type="text/javascript">  
+                alert('@TempData["RegistrationFailError"]');  
+            </script>  
+        }
+    }
+
+    <br />
+    <br />
+
+    @using (Html.BeginForm("Login", "Home", FormMethod.Post))  
+    {  
+        <p>Existing Users may login here:</p>
+        <input type="text" name="username" placeholder="Enter username..." /><br />
+        <input type="text" name="password" placeholder="Enter password..."/><br />
+        <input type="submit" id="loginButton"/> 
+    }  
+    @if (TempData["LoginFailError"] != null)  
+    {  
+        <script type="text/javascript">  
+                alert('@TempData["LoginFailError"]');  
+        </script>  
+    }
+    </div>

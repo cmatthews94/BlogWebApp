@@ -8,5 +8,9 @@ namespace BlogWebApp.Interfaces
         UserAccount GetUserAccountByUsername(string username);
         bool CheckIfPasswordCorrect(string username, string password);
         void ChangeUserPassword(UserAccount existingAccountInfo, string newPassword);
+        int GetUserIdFromUsername(string username);
+        UserAccount GetUserById(int Id);
+        void DeleteUserByUsername(string username);
+        
     }
 }

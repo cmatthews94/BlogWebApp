@@ -52,18 +52,6 @@ namespace BlogWebApp.Database
         {
             using(var _context = new UserAccountDbContext())
             {
-            //try
-             //  {
-             //       var accountToCheck = GetUserAccountByUsername(username);
-             //       accountToCheck.Password.Equals(passwordToCheck);
-             //       return true;
-             //   }
-             //   catch(Exception e)
-             //  {
-             //      Console.WriteLine(e.message);
-             //      return false;
-             //  }
-
                 if(GetUserAccountByUsername(username).Password != passwordToCheck)
                 {
                     throw new Exception("Password does not match this username");
@@ -92,6 +80,37 @@ namespace BlogWebApp.Database
                 }
             }
         }
+
+        public int GetUserIdFromUsername(string username)
+        {
+            using (var _context = new UserAccountDbContext())
+            {
+                UserAccount founduser = _context.UserAccounts.FirstOrDefault<UserAccount>(p => p.Username == username);
+                return founduser.UserId;
+            }
+        }
+
+        public UserAccount GetUserById(int Id)
+        {
+            using (var _context = new UserAccountDbContext())
+            {
+                var s = from i in _context.UserAccounts where i.UserId == Id select i;
+                if(!s.Any())
+                {
+                    throw new Exception("Unable to find account with given Id");
+                }
+
+                return s.First();
+            }
+        }
+
+        public void DeleteUserByUsername(string username)
+        {
+            using(var _context = new UserAccountDbContext())
+            {
+                _context.UserAccounts.Remove(GetUserAccountByUsername(username));
+                _context.SaveChanges();
+            }
+        }
     }
 }
-
